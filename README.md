@@ -1,6 +1,6 @@
-# dish - the Do-It SHell
+# diysh - the Do It Yourself SHell
 
-Dish is a library which allows developers to create their own shell-like interface for their Rust programs.
+Diysh is a library which allows developers to create their own shell-like interface for their Rust programs.
 
 ## Creating a shell
 
