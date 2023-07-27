@@ -1,6 +1,6 @@
 use std::{collections::HashMap, io::{self, Write}};
 
-use crate::{commands::definition::CommandDefinition, inout::{read, self, throw}, error::CommandError};
+use crate::{commands::definition::CommandDefinition, inout::{read, throw}, error::CommandError};
 
 use self::prompt::{ Prompt, PromptHeader };
 
@@ -68,7 +68,7 @@ impl Shell {
 
         if self.prompt.0 != "" {
             print!("{}", self.prompt);
-            io::stdout().flush();
+            let _ = io::stdout().flush();
         }
 
         let line = read::read_line();

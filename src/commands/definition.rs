@@ -17,7 +17,7 @@ impl Clone for CommandDefinition {
 
 impl CommandDefinition {
     pub fn new(name: &'static str) -> Self {
-        Self { name: name, arg_list: vec![], callback: |args| { Box::new(Passed()) } }
+        Self { name: name, arg_list: vec![], callback: |_args| { Box::new(Passed()) } }
     }
 
     pub fn build(&self) -> CommandDefinition {

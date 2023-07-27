@@ -5,11 +5,9 @@ pub mod commands;
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::HashMap, io};
+    use std::io;
 
-    use crate::{commands::{ definition::CommandDefinition, argument::{ArgType, EvaluatedArg}, status::Passed }, shell::{Shell, prompt::Prompt}};
-
-    use super::*;
+    use crate::{commands::{ definition::CommandDefinition, argument::ArgType, status::Passed }, shell::{Shell, prompt::Prompt}};
 
     #[test]
     fn shell_test() {
@@ -29,7 +27,7 @@ mod tests {
             )
             
             .register_command(CommandDefinition::new("parrot")
-                .set_callback(|args| {
+                .set_callback(|_args| {
                     let mut input = String::new();
 
                     io::stdin().read_line(&mut input).expect("The input should work");
