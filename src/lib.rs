@@ -18,6 +18,7 @@ mod tests {
 
             .register_command(CommandDefinition::new("print")
                 .add_arg(ArgType::Str)
+                .set_description("text:str - Prints the content of text in the screen")
                 .set_callback(|args| {
                     let text = args[0].get_str().unwrap();
 
@@ -27,6 +28,7 @@ mod tests {
             )
             
             .register_command(CommandDefinition::new("parrot")
+                .set_description("- Will read and input and print it back")
                 .set_callback(|_args| {
                     let mut input = String::new();
 
@@ -35,10 +37,18 @@ mod tests {
                     println!("{}", input);
                     Box::new(Passed())
                 }).build()
-        
+            )
+            
+            .register_command(CommandDefinition::new("help")
+                .set_description("- Shows this screen")
+                .set_callback(|_args| {
+
+                    Box::new(Passed())
+                }).build()
             );
 
         shell.start();
+        shell.help();
 
         loop {
             shell.read_and_run();

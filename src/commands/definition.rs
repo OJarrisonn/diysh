@@ -6,18 +6,19 @@ use super::{argument::{ArgType, EvaluatedArg}, instance::CommandInstance, status
 pub struct CommandDefinition {
     name: &'static str,
     arg_list: Vec<ArgType>,
-    callback: fn(&Vec<EvaluatedArg>) -> Box<dyn CommandStatus>
+    callback: fn(&Vec<EvaluatedArg>) -> Box<dyn CommandStatus>,
+    description: &'static str
 }
 
 impl Clone for CommandDefinition {
     fn clone(&self) -> Self {
-        Self { name: self.name.clone(), arg_list: self.arg_list.clone(), callback: self.callback.clone() }
+        Self { name: self.name.clone(), arg_list: self.arg_list.clone(), callback: self.callback.clone() , description: self.description.clone()}
     }
 }
 
 impl CommandDefinition {
     pub fn new(name: &'static str) -> Self {
-        Self { name: name, arg_list: vec![], callback: |_args| { Box::new(Passed()) } }
+        Self { name: name, arg_list: vec![], callback: |_args| { Box::new(Passed()) }, description: "" }
     }
 
     pub fn build(&self) -> CommandDefinition {
@@ -30,14 +31,20 @@ impl CommandDefinition {
         self
     }
 
+    pub fn set_description(&mut self, description: &'static str) -> &mut Self {
+        self.description = description;
+
+        self
+    }
+
     pub fn set_callback(&mut self, callback: fn(&Vec<EvaluatedArg>) -> Box<dyn CommandStatus>) -> &mut Self {
         self.callback = callback;
 
         self
     }
-}
+    
 
-impl CommandDefinition {
+
     pub fn instantiate(&self, arg_list: Vec<ArgToken>) -> Result<CommandInstance, CommandError>{
         if arg_list.len() > self.arg_list.len() { 
             return Err(CommandError::TooManyArguments(self.name.to_string(), self.arg_list.len(), arg_list.len())) 
@@ -66,5 +73,9 @@ impl CommandDefinition {
     }
     pub fn arg_list(&self) -> &Vec<ArgType> {
         &self.arg_list
+    }
+
+    pub fn description(&self) -> &'static str {
+        self.description
     }
 }

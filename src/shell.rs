@@ -1,6 +1,6 @@
-use std::{collections::HashMap, io::{self, Write}};
+use std::{collections::HashMap, io::{self, Write}, cmp::min, process};
 
-use crate::{commands::definition::CommandDefinition, inout::{read, throw}, error::CommandError};
+use crate::{commands::{definition::CommandDefinition, status::{Failed, CommandStatus}}, inout::{read, throw}, error::CommandError};
 
 use self::prompt::{ Prompt, PromptHeader };
 
@@ -59,9 +59,32 @@ impl Shell {
         }
     }
 
+    pub fn help(&self) {
+        for def in self.command_registry.values() {
+            println!("{}: {}\n", def.name(), def.description())
+        }
+    }
 
+    pub fn history(&self, len: i32) {
+        let len = if len <= 0 { 
+            self.history.len() 
+        } else { 
+            min(
+                len.to_string().parse().unwrap(), 
+                self.history.len()
+            ) 
+        };
 
-    pub fn read_and_run(&mut self) {
+        for i in ((self.history.len() - len)..0).rev() {
+            println!("{}: {}", i, self.history[i]);
+        }
+    }
+    
+    pub fn exit(&self) {
+        process::exit(0)
+    }
+
+    pub fn read_and_run(&mut self) -> Box<dyn CommandStatus>{
         if self.prompt_header.0 != "" {
             println!("{}", self.prompt_header);
         }
@@ -85,7 +108,7 @@ impl Shell {
                             Err(e) => throw::exception(e)
                         }
                     }
-                    None => throw::exception(CommandError::UnknownCommand(token.0.0))
+                    None => { let e = CommandError::UnknownCommand(token.0.0); throw::exception(e) }
                 }
             }
             Err(e) => throw::exception(e),

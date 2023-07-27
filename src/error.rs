@@ -1,14 +1,7 @@
-use std::{fmt::Display, io};
+use std::{fmt::Display, io, error::Error};
 
 use crate::commands::argument::ArgType;
 
-
-pub enum CallbackStatus {
-    Passed(String),
-    Failed(String)
-}
-
-pub trait DishError { }
 
 #[derive(Debug)]
 pub enum InputError{
@@ -29,7 +22,7 @@ pub enum CommandError {
 
 
 
-impl DishError for InputError {}
+impl Error for InputError {}
 
 impl Display for InputError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -41,7 +34,7 @@ impl Display for InputError {
     }
 }
 
-impl DishError for CommandError {}
+impl Error for CommandError {}
 
 impl Display for CommandError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

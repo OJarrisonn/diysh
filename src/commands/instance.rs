@@ -11,7 +11,7 @@ impl CommandInstance {
         CommandInstance { arg_list, callback }
     }
 
-    pub fn run(&self) {
-        (self.callback)(&self.arg_list);
+    pub fn run(&self) -> Box<dyn CommandStatus>{
+        (self.callback)(&self.arg_list)
     }
 }

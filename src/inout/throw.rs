@@ -1,8 +1,10 @@
-use std::fmt::Display;
+use std::{fmt::Display, error::Error};
 
-use crate::error::DishError;
+use crate::commands::status::{CommandStatus, Failed};
 
-pub fn exception<E>(error: E)
-where E: DishError + Display {
+pub fn exception<E>(error: E) -> Box<dyn CommandStatus>
+where E: Error + Display + 'static {
     eprintln!("[ERROR] {}", error);   
+
+    Box::new(Failed(Box::new(error)))
 }
