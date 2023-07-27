@@ -1,6 +1,6 @@
 use std::{collections::HashMap, io::{self, Write}, cmp::min, process};
 
-use crate::{commands::{definition::CommandDefinition, status::{Failed, CommandStatus, Passed}, argument::ArgType}, inout::{read, throw}, error::CommandError};
+use crate::{commands::{definition::CommandDefinition, status::{CommandStatus, Passed}, argument::ArgType}, inout::{read, throw}, error::CommandError};
 
 use self::prompt::{ Prompt, PromptHeader };
 
