@@ -11,11 +11,11 @@ pub enum ArgToken {
 }
 
 #[derive(Debug)]
-pub struct IdentifierToken(String);
+pub struct IdentifierToken(pub String);
 
 // Read a line and return a tuple for building the command from the tokens or and error if the input can't be parsed to a command
-pub fn read_as_tokens() -> Result<(IdentifierToken, Vec<ArgToken>), InputError> {
-    let mut raw_tokens = get_raw_tokens(read_raw()); // Gets the raw_token vector
+pub fn get_tokens(line: String) -> Result<(IdentifierToken, Vec<ArgToken>), InputError> {
+    let mut raw_tokens = get_raw_tokens(line); // Gets the raw_token vector
 
     // Verifies if it isn't an empty input
     if raw_tokens.len() == 0 {
@@ -44,7 +44,7 @@ pub fn read_as_tokens() -> Result<(IdentifierToken, Vec<ArgToken>), InputError> 
     Ok((identifier, args))
 }
 
-fn read_raw() -> String {
+pub fn read_line() -> String {
     let mut buf = String::new();
     
     loop {
@@ -103,5 +103,14 @@ fn is_flag(text: &str) -> bool {
     match Regex::new(r"--[a-z](-[a-z])*").unwrap().captures(text) {
         None => false,
         _ => true
+    }
+}
+
+impl ToString for ArgToken {
+    fn to_string(&self) -> String {
+        match self {
+            ArgToken::Literal(text) => text.clone(),
+            ArgToken::Flag(text) => text.clone()
+        }
     }
 }

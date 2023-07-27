@@ -1,7 +1,8 @@
 use std::fmt::Display;
 
-use crate::error::CommandError;
+use crate::{error::CommandError, inout::read::ArgToken};
 
+#[derive(Debug)]
 pub enum ArgType {
     Str,
     Int,
@@ -31,6 +32,7 @@ impl Clone for ArgType {
     }
 }
 
+#[derive(Debug)]
 pub enum EvaluatedArg {
     Str(String),
     Int(i32),
@@ -38,10 +40,22 @@ pub enum EvaluatedArg {
     Bool(bool)
 }
 
-impl ArgType {
-    fn evaluate(&self, value: &str) -> Result<EvaluatedArg, CommandError> {
+impl Clone for EvaluatedArg {
+    fn clone(&self) -> Self {
         match self {
-            Self::Str => Ok(EvaluatedArg::Str(value.to_string())),
+            Self::Str(arg0) => Self::Str(arg0.clone()),
+            Self::Int(arg0) => Self::Int(arg0.clone()),
+            Self::Float(arg0) => Self::Float(arg0.clone()),
+            Self::Bool(arg0) => Self::Bool(arg0.clone()),
+        }
+    }
+}
+
+impl ArgType {
+    pub fn evaluate(&self, value: &ArgToken) -> Result<EvaluatedArg, CommandError> {
+        let value = value.to_string();
+        match self {
+            Self::Str => Ok(EvaluatedArg::Str(value)),
             Self::Int => match value.parse::<i32>() {
                 Ok(int) => Ok(EvaluatedArg::Int(int)),
                 Err(_) => Err(CommandError::MismatchArgument(value.to_string(), ArgType::Int))
@@ -54,6 +68,36 @@ impl ArgType {
                 Ok(b) => Ok(EvaluatedArg::Bool(b)),
                 Err(_) => Err(CommandError::MismatchArgument(value.to_string(), ArgType::Bool))
             }        
+        }
+    }
+}
+
+impl EvaluatedArg {
+    pub fn get_str(&self) -> Option<String> {
+        match self {
+            Self::Str(result) => Some(result.clone()),
+            _ => None
+        }
+    }
+
+    pub fn get_int(&self) -> Option<i32> {
+        match self {
+            Self::Int(result) => Some(*result),
+            _ => None
+        }
+    }
+
+    pub fn get_float(&self) -> Option<f32> {
+        match self {
+            Self::Float(result) => Some(*result),
+            _ => None
+        }
+    }
+
+    pub fn get_bool(&self) -> Option<bool> {
+        match self {
+            Self::Bool(result) => Some(*result),
+            _ => None
         }
     }
 }

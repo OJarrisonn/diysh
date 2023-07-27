@@ -1,38 +1,27 @@
-use std::collections::HashMap;
+use crate::{error::CommandError, inout::read::ArgToken};
 
-use crate::error::CommandError;
+use super::{argument::{ArgType, EvaluatedArg}, instance::CommandInstance, status::{CommandStatus, Passed}};
 
-use super::argument::{ArgType, EvaluatedArg};
-
+#[derive(Debug)]
 pub struct CommandDefinition {
-    name: String,
+    name: &'static str,
     arg_list: Vec<ArgType>,
-    opt_args: HashMap<String, ArgType>,
-    callback: fn(Vec<EvaluatedArg>, HashMap<String, EvaluatedArg>) -> Result<(), CommandError>
+    callback: fn(&Vec<EvaluatedArg>) -> Box<dyn CommandStatus>
 }
 
-pub struct CommandDefinitionBuilder {
-    name: String,
-    arg_list: Vec<ArgType>,
-    opt_args: HashMap<String, ArgType>,
-    callback: Option<fn(Vec<EvaluatedArg>, HashMap<String, EvaluatedArg>) -> Result<(), CommandError>>
+impl Clone for CommandDefinition {
+    fn clone(&self) -> Self {
+        Self { name: self.name.clone(), arg_list: self.arg_list.clone(), callback: self.callback.clone() }
+    }
 }
 
-impl CommandDefinitionBuilder {
-    pub fn new(name: &str) -> Self {
-        Self { name: name.clone().to_string(), arg_list: vec![], opt_args: HashMap::new(), callback: None }
+impl CommandDefinition {
+    pub fn new(name: &'static str) -> Self {
+        Self { name: name, arg_list: vec![], callback: |args| { Box::new(Passed()) } }
     }
 
-    pub fn build(&self) -> Result<CommandDefinition, CommandError> {
-        match self.callback {
-            Some(cb) => Ok(CommandDefinition { 
-                name: self.name.clone(), 
-                arg_list: self.arg_list.to_owned(), 
-                opt_args: self.opt_args.to_owned(), 
-                callback: cb
-            }),
-            None => Err(CommandError::NoCallback(self.name.clone()))
-        }
+    pub fn build(&self) -> CommandDefinition {
+        self.clone()
     }
 
     pub fn add_arg(&mut self, arg_type: ArgType) -> &mut Self {
@@ -41,30 +30,41 @@ impl CommandDefinitionBuilder {
         self
     }
 
-    pub fn add_opt_arg(&mut self, arg_name: &str, arg_type: ArgType) -> &mut Self {
-        self.opt_args.insert(arg_name.to_string(), arg_type);
-
-        self
-    }
-
-    pub fn set_callback(&mut self, callback: fn(Vec<EvaluatedArg>, HashMap<String, EvaluatedArg>) -> Result<(), CommandError>) -> &mut Self {
-        self.callback = Some(callback);
+    pub fn set_callback(&mut self, callback: fn(&Vec<EvaluatedArg>) -> Box<dyn CommandStatus>) -> &mut Self {
+        self.callback = callback;
 
         self
     }
 }
 
 impl CommandDefinition {
+    pub fn instantiate(&self, arg_list: Vec<ArgToken>) -> Result<CommandInstance, CommandError>{
+        if arg_list.len() > self.arg_list.len() { 
+            return Err(CommandError::TooManyArguments(self.name.to_string(), self.arg_list.len(), arg_list.len())) 
+        }
+
+        else if arg_list.len() < self.arg_list.len() { 
+            return Err(CommandError::TooFewArguments(self.name.to_string(), self.arg_list.len(), arg_list.len())) 
+        }
+
+        let mut inst_arg_list: Vec<EvaluatedArg> = vec![];
+        let mut arg_list = arg_list.iter();
+
+        for arg in &self.arg_list {
+            match arg.evaluate(arg_list.next().unwrap()) {
+                Ok(eval) => inst_arg_list.push(eval),
+                Err(e) => return Err(e)
+            }
+        }
+
+
+        Ok(CommandInstance::new(inst_arg_list, self.callback))
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
     pub fn arg_list(&self) -> &Vec<ArgType> {
         &self.arg_list
-    }
-    pub fn opt_arg(&self, arg_name: &str) -> Option<&ArgType> {
-        self.opt_args.get(arg_name)
-    }
-    pub fn evaluate(&self, eval_arg_list: Vec<EvaluatedArg>, eval_opt_args: HashMap<String,EvaluatedArg>) -> Result<(), CommandError> {
-        (self.callback)(eval_arg_list, eval_opt_args)
     }
 }
