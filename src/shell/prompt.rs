@@ -1,6 +1,9 @@
 use std::fmt::Display;
 
+#[derive(Debug)]
 pub struct Prompt(pub String);
+
+#[derive(Debug)]
 pub struct PromptHeader(pub String);
 
 impl From<&str> for Prompt {

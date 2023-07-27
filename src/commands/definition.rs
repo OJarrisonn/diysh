@@ -1,4 +1,4 @@
-use crate::{error::CommandError, inout::read::ArgToken};
+use crate::{error::CommandError, inout::read::ArgToken, shell::Shell};
 
 use super::{argument::{ArgType, EvaluatedArg}, instance::CommandInstance, status::{CommandStatus, Passed}};
 
@@ -6,7 +6,7 @@ use super::{argument::{ArgType, EvaluatedArg}, instance::CommandInstance, status
 pub struct CommandDefinition {
     name: &'static str,
     arg_list: Vec<ArgType>,
-    callback: fn(&Vec<EvaluatedArg>) -> Box<dyn CommandStatus>,
+    callback: fn(&Shell, &Vec<EvaluatedArg>) -> Box<dyn CommandStatus>,
     description: &'static str
 }
 
@@ -16,9 +16,9 @@ impl Clone for CommandDefinition {
     }
 }
 
-impl CommandDefinition {
+impl<'a> CommandDefinition {
     pub fn new(name: &'static str) -> Self {
-        Self { name: name, arg_list: vec![], callback: |_args| { Box::new(Passed()) }, description: "" }
+        Self { name: name, arg_list: vec![], callback: |_shell, _args| { Box::new(Passed()) }, description: "" }
     }
 
     pub fn build(&self) -> CommandDefinition {
@@ -37,7 +37,7 @@ impl CommandDefinition {
         self
     }
 
-    pub fn set_callback(&mut self, callback: fn(&Vec<EvaluatedArg>) -> Box<dyn CommandStatus>) -> &mut Self {
+    pub fn set_callback(&mut self, callback: fn(&Shell, &Vec<EvaluatedArg>) -> Box<dyn CommandStatus>) -> &mut Self {
         self.callback = callback;
 
         self
@@ -45,7 +45,7 @@ impl CommandDefinition {
     
 
 
-    pub fn instantiate(&self, arg_list: Vec<ArgToken>) -> Result<CommandInstance, CommandError>{
+    pub fn instantiate(&'a self, shell: &'a Shell, arg_list: Vec<ArgToken>) -> Result<CommandInstance, CommandError>{
         if arg_list.len() > self.arg_list.len() { 
             return Err(CommandError::TooManyArguments(self.name.to_string(), self.arg_list.len(), arg_list.len())) 
         }
@@ -65,7 +65,7 @@ impl CommandDefinition {
         }
 
 
-        Ok(CommandInstance::new(inst_arg_list, self.callback))
+        Ok(CommandInstance::new(shell, inst_arg_list, self.callback))
     }
 
     pub fn name(&self) -> &str {

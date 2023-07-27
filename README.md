@@ -41,14 +41,13 @@ let my_command = CommandDefinition::new("my_command") // Creates a empty command
     ...
     .set_description("arg0:str - My command description")
     // Here you can both pass the pointer to a function or use a closure that will be called when this command is called
-    // Your function must be fn(&Vec<EvaluatedArg>) -> Box<dyn CommandStatus>
-    .set_callback(|args| {
+    // Your function must be fn(&Shell, &Vec<EvaluatedArg>) -> Box<dyn CommandStatus>
+    .set_callback(|shell, args| {
         // Here goes your callback function
 
         Box::new(Passed())
     })
-    
-    .build()
+    .build() // Builds the command
 ```
 
 ### ArgType and EvaluatedArg
@@ -63,8 +62,11 @@ CommandDefinition::new("print")
     .add_arg(ArgType::Str)
     .add_arg(ArgType::Int)
     .add_arg(ArgType::Bool)
-    .set_callback(|args| { ... })
+    .set_callback(|shell, args| { ... })
+    .build()
 ```
+
+```shell``` is a reference to the running shell, so you can access it's methods and functions inside the callback
 
 ```args``` will be a vector where ```args[0]``` has a ```EvaluatedArg::Str```, ```args[1]``` has a ```EvaluatedArg::Int``` and ```args[2]``` has a ```EvaluatedArg::Bool```. And inside the function, to get the proper value stored, just call ```args[0].get_str().unwrap()``` or ```args[1].get_int().unwrap()``` or ```args[2].get_bool().unwrap()```.
 

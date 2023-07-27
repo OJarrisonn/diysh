@@ -1,11 +1,12 @@
 use std::{collections::HashMap, io::{self, Write}, cmp::min, process};
 
-use crate::{commands::{definition::CommandDefinition, status::{Failed, CommandStatus}}, inout::{read, throw}, error::CommandError};
+use crate::{commands::{definition::CommandDefinition, status::{Failed, CommandStatus, Passed}, argument::ArgType}, inout::{read, throw}, error::CommandError};
 
 use self::prompt::{ Prompt, PromptHeader };
 
 pub mod prompt;
 
+#[derive(Debug)]
 pub struct Shell {
     welcome_message: String,
     prompt: Prompt,
@@ -43,6 +44,41 @@ impl Shell {
         self.prompt_header = ph;
 
         self
+    }
+
+
+    pub fn register_default_commands(&mut self) -> &mut Self {
+        self.register_command(
+        CommandDefinition::new("help")
+            .set_description("Shows this page")
+            .set_callback(|shell, _args| {
+                shell.help();
+
+                Box::new(Passed())
+            })
+            .build()
+        ).register_command(
+            CommandDefinition::new("history")
+            .add_arg(ArgType::Int)
+            .set_description("len:int - Shows the list of the last len-th commands ran")
+            .set_callback(|shell, args| {
+                let len = args[0].get_int().unwrap();
+
+                shell.history(len);
+
+                Box::new(Passed())
+            })
+            .build()
+        ).register_command(
+            CommandDefinition::new("exit")
+            .set_description("Exists the program")
+            .set_callback(|shell, _args| {
+                shell.exit();
+
+                Box::new(Passed())
+            })
+            .build()
+        )
     }
 
     pub fn register_command(&mut self, definition: CommandDefinition) -> &mut Self {
@@ -103,7 +139,7 @@ impl Shell {
             Ok(token) => {
                 match self.command_registry.get(&token.0.0) {
                     Some(def) => {
-                        match def.instantiate(token.1) {
+                        match def.instantiate(self, token.1) {
                             Ok(inst) => inst.run(),
                             Err(e) => throw::exception(e)
                         }
