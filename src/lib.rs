@@ -7,7 +7,7 @@ pub mod commands;
 mod tests {
     use std::io;
 
-    use crate::{commands::{ definition::CommandDefinition, argument::ArgType, status::Passed }, shell::{Shell, prompt::Prompt}};
+    use crate::{commands::{ definition::CommandDefinition, argument::ArgType }, shell::{Shell, prompt::Prompt}};
 
     #[test]
     fn shell_test() {
@@ -26,7 +26,6 @@ mod tests {
                     let text = args[0].get_str().unwrap();
 
                     println!("{}", text);
-                    Box::new(Passed())
                 })
                 .build()
             )
@@ -39,7 +38,6 @@ mod tests {
                     io::stdin().read_line(&mut input).expect("The input should work");
 
                     println!("{}", input);
-                    Box::new(Passed())
                 })
                 .build()
             );

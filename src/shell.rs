@@ -1,6 +1,6 @@
 use std::{collections::HashMap, io::{self, Write}, cmp::min, process};
 
-use crate::{commands::{definition::CommandDefinition, status::{CommandStatus, Passed}, argument::ArgType}, inout::{read, throw}, error::CommandError};
+use crate::{commands::{definition::CommandDefinition, argument::ArgType}, inout::{read, throw}, error::CommandError};
 
 use self::prompt::{ Prompt, PromptHeader };
 
@@ -53,8 +53,6 @@ impl Shell {
             .set_description("Shows this page")
             .set_callback(|shell, _args| {
                 shell.help();
-
-                Box::new(Passed())
             })
             .build()
         ).register_command(
@@ -65,8 +63,6 @@ impl Shell {
                 let len = args[0].get_int().unwrap();
 
                 shell.history(len);
-
-                Box::new(Passed())
             })
             .build()
         ).register_command(
@@ -74,8 +70,6 @@ impl Shell {
             .set_description("Exists the program")
             .set_callback(|shell, _args| {
                 shell.exit();
-
-                Box::new(Passed())
             })
             .build()
         )
@@ -120,7 +114,7 @@ impl Shell {
         process::exit(0)
     }
 
-    pub fn read_and_run(&mut self) -> Box<dyn CommandStatus>{
+    pub fn read_and_run(&mut self) {
         if self.prompt_header.0 != "" {
             println!("{}", self.prompt_header);
         }

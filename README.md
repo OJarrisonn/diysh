@@ -1,61 +1,101 @@
 # diysh - the Do It Yourself SHell
 
-Diysh is a library which allows developers to create their own shell-like interface for their Rust programs.
+diysh is a library which allows developers to create their own shell-like interface for their Rust programs.
 
-## Creating a shell
+# Creating a Shell
 
-A shell is the text interface from where one can read the commands. In order to create a shell one must follow those steps:
+A shell is the text interface from where you can read the commands and log the info you need. In order to create a shell you must follow those steps:
+
 ```rust
 let mut shell = Shell::new(); // Mandatory
 
-shell.set_welcome("Welcome message"); // Optional, sets a message to be shown when one calls shell.start();
+shell.set_sparse(do_sparse: bool);
 
-shell.set_prompt(Prompt::from(">> ")); // Recomended, sets a character sequence to indicate where the command is going to be written
+shell.set_prompt(prompt: &str); 
 
-shell.set_prompt_header(PromptHeader::from("Header::::::::::")); // Optional, sets a line to be displayed over the prompt, in order to separate the lines
+shell.register_command(command: CommandDefinition);
 
-shell.register_command(my_command); // Recommended: Registers a new CommandDefinition. One can call this method multiple times
+shell.register_default_commands();
+
+shell.set_log_file(path: &str);
 ```
 
-Once one's shell is created, one has access to methods such as:
+Once your shell is created, you have access to methods such as:
 
 ```rust
-shell.start(); // Shows the welcome message
+shell.read_and_run();
 
-shell.read_and_run(); // Reads a command from the terminal and tries to parse it to some defined command
+shell.log(level: LogLevel, text: &str);
 
-shell.help(); // Prints a help screen
+shell.help();
 
-shell.history(len: usize); // Prints the last "len"-th commands (0 will show all the saved history)
+shell.history(len: usize);
 
-shell.exit(); // Exits the program
+shell.exit();
+```
+## Set Sparse
+
+If set to true, will print an empty line after a command output in order to give some visual separation between commands.
+
+```
+help
+exit - Exists the program
+history len - Shows the len-th last commands 
+help - Shows this page
+print text:str - Prints the specified text to the terminal
+
+print "Hello World"
+Hello World
 ```
 
-## Creating a command
+## Set Prompt
 
-A command can be created using the ```CommandDefinition``` type following those steps:
+Sets the text to be displayed before the user input. For example, setting it to ">> ", will give the result:
+
+```
+>> print "Hello World"
+Hello World
+>> help
+exit - Exists the program
+history len - Shows the len-th last commands 
+help - Shows this page
+print text:str - Prints the specified text to the terminal
+```
+
+## Register Command
+
+Probably the most important method. It's used to register new commands to your shell using a CommandDefinition. A CommandDefinition has: a name, a description, arguments and a callback function. Here's an example of a CommandDefinition of a print command:
 
 ```rust
-let my_command = CommandDefinition::new("my_command") // Creates a empty command with given name
-    .add_arg(ArgType::Str) // You can add positional arguments of Str, Int, Float and Bool
-    ...
-    .set_description("arg0:str - My command description")
+let print_command = CommandDefinition::new("print") // Creates a empty command with given name
+    .set_description("text:str - Prints the specified text to the terminal")
+    .add_arg(ArgType::Str) // You can add positional arguments of Str, Int, Float and Bool, as many as you wish
     // Here you can both pass the pointer to a function or use a closure that will be called when this command is called
     // Your function must be fn(&Shell, &Vec<EvaluatedArg>) -> Box<dyn CommandStatus>
     .set_callback(|shell, args| {
-        // Here goes your callback function
+        let text = args[0].get_str().unwrap();
+
+        println!("{}", text);
 
         Box::new(Passed())
     })
     .build() // Builds the command
 ```
 
+A description isn't mandatory, but it's recommended to help users to use your shell. 
+
+The ```add_arg``` method can be called as many times as you wish to add any of the avaliable ```ArgType```s.
+
+Setting a callback is the most important thing about a command, you can create a command with no callback, but it's useless. The callback receives a reference to the running Shell and the EvaluatedArg vector with the values read from the input. 
+
+Also your callback can return any type that implements the ```CommandStatus``` trait. There are two implemented types: ```Passed()``` and ```Failed(Box<dyn Error>)```.
+
 ### ArgType and EvaluatedArg
-When specifying command arguments, one needs to specify the type of the argument both on the command definition and when one uses the argument inside the callback function
+When specifying command arguments, you need to specify the type of the argument both on the command definition and when you use the argument inside the callback function
 
-```ArgType``` is used to specify the type in the ```CommandDefinition```. Once defined, when the command is parsed, one will receive a vector of ```EvaluatedArg``` is the same order that one defined in the definition.
+```ArgType``` is used to specify the type in the ```CommandDefinition```. Once defined, when the command is parsed, you will receive a vector of ```EvaluatedArg``` is the same order that you defined in the definition.
 
-So if one creates the following command:
+So if you create the following command:
 
 ```rust
 CommandDefinition::new("print")
@@ -76,6 +116,10 @@ The methods ```get_str()```,```get_int()```, ```get_float()``` and ```get_bool()
 A command description is just a ```&'static str``` that will be shown by the ```help()``` method of the Shell struct.
 
 A recommendation is that descriptions have the following format:
-```arg_name:arg_type arg_name:arg_type ... - A proper command description, if you wish to break line, use \n\t to keep some organization```
+```arg_name:arg_type arg_name:arg_type ... - A proper command description```. If you wish to break line, use \n\t to keep some organization
 
 Argument names should be ```snake_case``` and argument types are: ```str```, ```int```, ```float``` and ```bool```.
+
+## Full example
+
+Here it's a full example of a shell

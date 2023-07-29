@@ -1,12 +1,12 @@
 use crate::{error::CommandError, inout::read::ArgToken, shell::Shell};
 
-use super::{argument::{ArgType, EvaluatedArg}, instance::CommandInstance, status::{CommandStatus, Passed}};
+use super::{argument::{ArgType, EvaluatedArg}, instance::CommandInstance};
 
 #[derive(Debug)]
 pub struct CommandDefinition {
     name: &'static str,
     arg_list: Vec<ArgType>,
-    callback: fn(&Shell, &Vec<EvaluatedArg>) -> Box<dyn CommandStatus>,
+    callback: fn(&Shell, &Vec<EvaluatedArg>),
     description: &'static str
 }
 
@@ -18,7 +18,7 @@ impl Clone for CommandDefinition {
 
 impl<'a> CommandDefinition {
     pub fn new(name: &'static str) -> Self {
-        Self { name: name, arg_list: vec![], callback: |_shell, _args| { Box::new(Passed()) }, description: "" }
+        Self { name: name, arg_list: vec![], callback: |_shell, _args| {  }, description: "" }
     }
 
     pub fn build(&self) -> CommandDefinition {
@@ -37,7 +37,7 @@ impl<'a> CommandDefinition {
         self
     }
 
-    pub fn set_callback(&mut self, callback: fn(&Shell, &Vec<EvaluatedArg>) -> Box<dyn CommandStatus>) -> &mut Self {
+    pub fn set_callback(&mut self, callback: fn(&Shell, &Vec<EvaluatedArg>)) -> &mut Self {
         self.callback = callback;
 
         self
