@@ -1,18 +1,16 @@
-use std::{collections::HashMap, io::{self, Write}, cmp::min, process};
+use std::{collections::HashMap, io::{self, Write}, cmp::min, process, path::Path, fs::{self, OpenOptions}};
 
-use crate::{commands::{definition::CommandDefinition, argument::ArgType}, inout::{read, throw}, error::CommandError};
+use chrono::Local;
 
-use self::prompt::{ Prompt, PromptHeader };
+use crate::{commands::{definition::CommandDefinition, argument::ArgType}, inout::{read, log::{LogLevel, self}}, error::CommandError};
 
-pub mod prompt;
 
-#[derive(Debug)]
 pub struct Shell {
-    welcome_message: String,
-    prompt: Prompt,
-    prompt_header: PromptHeader,
+    prompt: String,
     command_registry: HashMap<String, CommandDefinition>,
-    history: Vec<String>
+    history: Vec<String>,
+    do_sparse: bool,
+    log_file: Option<String>
 }
 
 
@@ -20,42 +18,64 @@ pub struct Shell {
 impl Shell {
     pub fn new() -> Self {
         Shell { 
-            welcome_message: String::new(), 
-            prompt: Prompt(String::new()), 
-            prompt_header: PromptHeader(String::new()), 
+            prompt: String::new(), 
             command_registry: HashMap::new(),
-            history: vec![]
+            history: vec![],
+            do_sparse: false,
+            log_file: None
         }
     }
 
-    pub fn set_welcome(&mut self, message: &str) -> &mut Self {
-        self.welcome_message = message.to_string();
+    pub fn set_sparse(&mut self, do_sparse: bool) -> &mut Self {
+        self.do_sparse = do_sparse;
 
         self
     }
 
-    pub fn set_prompt(&mut self, p: Prompt) -> &mut Self {
-        self.prompt = p;
+    pub fn set_log_directory(&mut self, log_directory: &str) -> &mut Self {
+        let path = Path::new(log_directory);
+
+        if !path.is_dir() {
+            if let Err(_) = fs::create_dir_all(path) {
+                panic!("Couldn't create the log directory {}", log_directory);
+            }
+        }
+
+        let mut filename = log_directory.to_string();
+
+        filename.push_str(&format!("diysh-{}.log", Local::now().format("%Y-%m-%d-%H:%M:%S")));
+    
+        self.log_file = match OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(&filename) {
+                Ok(_) => Some(filename.clone()),
+                Err(_) => None,
+            };
 
         self
     }
 
-    pub fn set_prompt_header(&mut self, ph: PromptHeader) -> &mut Self {
-        self.prompt_header = ph;
+    pub fn set_prompt(&mut self, p: &str) -> &mut Self {
+        self.prompt = p.to_string();
 
         self
     }
 
-
-    pub fn register_default_commands(&mut self) -> &mut Self {
+    pub fn register_help(&mut self) -> &mut Self {
         self.register_command(
         CommandDefinition::new("help")
-            .set_description("Shows this page")
+            .set_description("- Shows this page")
             .set_callback(|shell, _args| {
                 shell.help();
             })
             .build()
-        ).register_command(
+        );
+
+        self
+    }
+    pub fn register_history(&mut self) -> &mut Self {
+        self.register_command(
             CommandDefinition::new("history")
             .add_arg(ArgType::Int)
             .set_description("len:int - Shows the list of the last len-th commands ran")
@@ -65,14 +85,21 @@ impl Shell {
                 shell.history(len);
             })
             .build()
-        ).register_command(
+        );
+
+        self
+    }
+    pub fn register_exit(&mut self) -> &mut Self {
+        self.register_command(
             CommandDefinition::new("exit")
-            .set_description("Exists the program")
+            .set_description("- Exists the program")
             .set_callback(|shell, _args| {
                 shell.exit();
             })
             .build()
-        )
+        );
+
+        self
     }
 
     pub fn register_command(&mut self, definition: CommandDefinition) -> &mut Self {
@@ -83,15 +110,49 @@ impl Shell {
         self
     }
 
-    pub fn start(&self) {
-        if self.welcome_message != "" {
-            println!("{}", self.welcome_message);
+    pub fn read_and_run(&mut self) {
+        if self.prompt != "" {
+            print!("{}", self.prompt);
+            let _ = io::stdout().flush();
+        }
+
+        let line = read::read_line();
+
+        self.log(LogLevel::INFO, &format!(">> {}", &line[..line.len()-1]));
+
+        let tokens = read::get_tokens(&line);
+
+        match tokens {
+            Ok(token) => {
+                match self.command_registry.get(&token.0.0).as_mut() {
+                    Some(def) => {
+                        match def.instantiate(self, token.1) {
+                            Ok(inst) => inst.run(),
+                            Err(e) => self.log(LogLevel::ERROR, &format!("{}", e))
+                        }
+                    }
+                    None => { let e = CommandError::UnknownCommand(token.0.0); self.log(LogLevel::ERROR, &format!("{}", e)) }
+                }
+            }
+            Err(e) => self.log(LogLevel::ERROR, &format!("{}", e)),
+        }
+
+        self.history.push(line.clone());
+
+        if self.do_sparse {
+            println!("");
+        }
+    }
+
+    pub fn log(&self, log_level: LogLevel, message: &str) {
+        if let Some(file) = &self.log_file {
+            log::log(file, log_level, message);
         }
     }
 
     pub fn help(&self) {
         for def in self.command_registry.values() {
-            println!("{}: {}\n", def.name(), def.description())
+            println!("{} {}", def.name(), def.description())
         }
     }
 
@@ -105,44 +166,13 @@ impl Shell {
             ) 
         };
 
-        for i in ((self.history.len() - len)..0).rev() {
-            println!("{}: {}", i, self.history[i]);
+        for i in (self.history.len() - len)..self.history.len() {
+            print!("{}: {}", i, self.history[i]);
         }
     }
     
     pub fn exit(&self) {
         process::exit(0)
-    }
-
-    pub fn read_and_run(&mut self) {
-        if self.prompt_header.0 != "" {
-            println!("{}", self.prompt_header);
-        }
-
-        if self.prompt.0 != "" {
-            print!("{}", self.prompt);
-            let _ = io::stdout().flush();
-        }
-
-        let line = read::read_line();
-        self.history.push(line.clone());
-
-        let tokens = read::get_tokens(line);
-
-        match tokens {
-            Ok(token) => {
-                match self.command_registry.get(&token.0.0) {
-                    Some(def) => {
-                        match def.instantiate(self, token.1) {
-                            Ok(inst) => inst.run(),
-                            Err(e) => throw::exception(e)
-                        }
-                    }
-                    None => { let e = CommandError::UnknownCommand(token.0.0); throw::exception(e) }
-                }
-            }
-            Err(e) => throw::exception(e),
-        }
     }
 
 }

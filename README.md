@@ -15,9 +15,13 @@ shell.set_prompt(prompt: &str);
 
 shell.register_command(command: CommandDefinition);
 
-shell.register_default_commands();
+shell.register_help();
 
-shell.set_log_file(path: &str);
+shell.register_history();
+
+shell.register_exit();
+
+shell.set_log_directory(path: &str);
 ```
 
 Once your shell is created, you have access to methods such as:
@@ -57,7 +61,7 @@ Sets the text to be displayed before the user input. For example, setting it to 
 Hello World
 >> help
 exit - Exists the program
-history len - Shows the len-th last commands 
+history len:int - Shows the list of the last len-th commands ran 
 help - Shows this page
 print text:str - Prints the specified text to the terminal
 ```
@@ -71,7 +75,7 @@ let print_command = CommandDefinition::new("print") // Creates a empty command w
     .set_description("text:str - Prints the specified text to the terminal")
     .add_arg(ArgType::Str) // You can add positional arguments of Str, Int, Float and Bool, as many as you wish
     // Here you can both pass the pointer to a function or use a closure that will be called when this command is called
-    // Your function must be fn(&Shell, &Vec<EvaluatedArg>) -> Box<dyn CommandStatus>
+    // Your function must be fn(&Shell, &Vec<EvaluatedArg>)
     .set_callback(|shell, args| {
         let text = args[0].get_str().unwrap();
 
@@ -88,12 +92,10 @@ The ```add_arg``` method can be called as many times as you wish to add any of t
 
 Setting a callback is the most important thing about a command, you can create a command with no callback, but it's useless. The callback receives a reference to the running Shell and the EvaluatedArg vector with the values read from the input. 
 
-Also your callback can return any type that implements the ```CommandStatus``` trait. There are two implemented types: ```Passed()``` and ```Failed(Box<dyn Error>)```.
-
 ### ArgType and EvaluatedArg
 When specifying command arguments, you need to specify the type of the argument both on the command definition and when you use the argument inside the callback function
 
-```ArgType``` is used to specify the type in the ```CommandDefinition```. Once defined, when the command is parsed, you will receive a vector of ```EvaluatedArg``` is the same order that you defined in the definition.
+```ArgType``` is used to specify the type in the ```CommandDefinition```. Once defined, when the command is read and evaluated, you will receive a vector of ```EvaluatedArg``` is the same order that you defined in the definition.
 
 So if you create the following command:
 
@@ -106,20 +108,102 @@ CommandDefinition::new("print")
     .build()
 ```
 
-```shell``` is a reference to the running shell, so you can access it's methods and functions inside the callback
-
 ```args``` will be a vector where ```args[0]``` has a ```EvaluatedArg::Str```, ```args[1]``` has a ```EvaluatedArg::Int``` and ```args[2]``` has a ```EvaluatedArg::Bool```. And inside the function, to get the proper value stored, just call ```args[0].get_str().unwrap()``` or ```args[1].get_int().unwrap()``` or ```args[2].get_bool().unwrap()```.
 
 The methods ```get_str()```,```get_int()```, ```get_float()``` and ```get_bool()``` returns a ```Option``` and don't try casting, if you call ```get_int()``` on a ```EvaluatedArg::Float``` you'll receive a None instead of Some.
 
-### Description
-A command description is just a ```&'static str``` that will be shown by the ```help()``` method of the Shell struct.
+## Register Help, History and Exit Commands
 
-A recommendation is that descriptions have the following format:
-```arg_name:arg_type arg_name:arg_type ... - A proper command description```. If you wish to break line, use \n\t to keep some organization
+Registers a ```help```, a ```history len:int``` and an ```exit``` command.
 
-Argument names should be ```snake_case``` and argument types are: ```str```, ```int```, ```float``` and ```bool```.
+Here are the respective ```CommandDefinition```s:
 
-## Full example
+```rust
+CommandDefinition::new("help")
+    .set_description("- Shows this page")
+    .set_callback(|shell, _args| {
+        shell.help();
+    })
+    .build();
 
-Here it's a full example of a shell
+CommandDefinition::new("history")
+    .add_arg(ArgType::Int)
+    .set_description("len:int - Shows the list of the last len-th commands ran")
+    .set_callback(|shell, args| {
+        let len = args[0].get_int().unwrap();
+
+        shell.history(len);
+    })
+    .build();
+
+CommandDefinition::new("exit")
+    .set_description("- Exists the program")
+    .set_callback(|shell, _args| {
+        shell.exit();
+    })
+    .build()
+```
+
+It's good to know that ```help```, ```history``` and ```exit``` are public methods, so you can create your own definitions of those commands and still use our provided methods.
+
+## Set Log Directory
+
+Sets a directory where to write the logs
+
+## Read and Run
+
+This method is the one who asks for the user to insert a command. It's default behaviour is to print the defined prompt, wait for the user to type the input, try to parse the user input to a command and then run the respective callback passing the arguments passed by the user. Also this function will log every errors, warnings and infos.
+
+The usual is to use read_and_run inside a loop.
+
+## Log
+
+diysh log system is kinda simple. You just need to call the method ```log``` for the current shell and pass it the ```LogLevel``` which can be: ```INFO```, ```WARN``` or ```ERROR``` and then pass a ```&str``` containg the desired message. Warnings and Errors get logged to the log file and to the screen, but infos only get logged to the log file.
+
+# Full example
+
+Here it's a full example of a shell that implements the default commands and a print and a sum command
+
+```rust
+fn main() {
+        let mut shell = Shell::new();
+
+    shell
+        .set_sparse(true)
+        .set_prompt(">> ")
+        .set_log_directory("/tmp/diysh/")
+        .register_help()
+        .register_history()
+        .register_exit()
+        
+        .register_command( CommandDefinition::new("print")
+            .set_description("text:str - Prints the specified text to the terminal")
+            .add_arg(ArgType::Str)
+            .set_callback(|shell, args| {
+                let text = args[0].get_str().unwrap();
+
+                println!("{}", &text);
+                shell.log(LogLevel::INFO, &text);
+            })
+            .build()
+        )
+        
+        .register_command( CommandDefinition::new("sum")
+            .set_description("a:int b:int - Prints the result of the sum of a + b")
+            .add_arg(ArgType::Int)
+            .add_arg(ArgType::Int)
+            .set_callback(|shell, args| {
+                let a = args[0].get_int().unwrap();
+                let b = args[1].get_int().unwrap();
+
+                println!("{}", a + b);
+                shell.log(LogLevel::INFO, &format!("The sum is {}", a + b));
+            })
+            .build()
+        );
+
+    loop {
+        shell.read_and_run();
+    }
+}
+```

@@ -2,7 +2,6 @@ use crate::shell::Shell;
 
 use super::argument::EvaluatedArg;
 
-#[derive(Debug)]
 pub struct CommandInstance<'a> {
     shell: &'a Shell,
     arg_list: Vec<EvaluatedArg>,

@@ -36,6 +36,19 @@ impl Display for InputError {
 
 impl Error for CommandError {}
 
+impl Clone for CommandError {
+    fn clone(&self) -> Self {
+        match self {
+            Self::MismatchArgument(arg0, arg1) => Self::MismatchArgument(arg0.clone(), arg1.clone()),
+            Self::NoCallback(arg0) => Self::NoCallback(arg0.clone()),
+            Self::TooManyArguments(arg0, arg1, arg2) => Self::TooManyArguments(arg0.clone(), arg1.clone(), arg2.clone()),
+            Self::TooFewArguments(arg0, arg1, arg2) => Self::TooFewArguments(arg0.clone(), arg1.clone(), arg2.clone()),
+            Self::UnknownArgument(arg0) => Self::UnknownArgument(arg0.clone()),
+            Self::UnknownCommand(arg0) => Self::UnknownCommand(arg0.clone()),
+        }
+    }
+}
+
 impl Display for CommandError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

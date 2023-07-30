@@ -14,7 +14,7 @@ pub enum ArgToken {
 pub struct IdentifierToken(pub String);
 
 // Read a line and return a tuple for building the command from the tokens or and error if the input can't be parsed to a command
-pub fn get_tokens(line: String) -> Result<(IdentifierToken, Vec<ArgToken>), InputError> {
+pub fn get_tokens(line: &str) -> Result<(IdentifierToken, Vec<ArgToken>), InputError> {
     let mut raw_tokens = get_raw_tokens(line); // Gets the raw_token vector
 
     // Verifies if it isn't an empty input
@@ -57,7 +57,7 @@ pub fn read_line() -> String {
     buf
 }
 
-fn get_raw_tokens(raw_string: String) -> Vec<String> {
+fn get_raw_tokens(raw_string: &str) -> Vec<String> {
     let mut raw_tokens: Vec<String> = vec![];
     let mut raw_token = String::new();
     let mut quoting = false;
