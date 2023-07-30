@@ -92,7 +92,7 @@ fn get_raw_tokens(raw_string: &str) -> Vec<String> {
 }
 
 fn is_identifier(text: &str) -> bool {
-    match Regex::new(r"[a-z]+").unwrap().captures(text) {
+    match Regex::new(r"[a-z][a-zA-Z0-9]*").unwrap().captures(text) {
         None => false,
         _ => true
     }
@@ -100,7 +100,7 @@ fn is_identifier(text: &str) -> bool {
 
 
 fn is_flag(text: &str) -> bool {
-    match Regex::new(r"--[a-z](-[a-z])*").unwrap().captures(text) {
+    match Regex::new(r"--[a-z][a-zA-Z0-9]*").unwrap().captures(text) {
         None => false,
         _ => true
     }

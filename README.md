@@ -85,17 +85,20 @@ let print_command = CommandDefinition::new("print") // Creates a empty command w
     })
     .build() // Builds the command
 ```
+The command names **must** be ```camelCase``` and contain just letters and numbers (but the name can't start with a number). It's preffered to command names be just a single short word. But you're free to create a command called ```myAwesomeCommandToDoSomethingAmazing``` even though it's not good for the user to type such a long command.
 
-A description isn't mandatory, but it's recommended to help users to use your shell. 
+A description isn't mandatory, but it's recommended to help users to use your shell. A good description should inform the argument types and the a explanatory name with a full command description to tell the user what it does.
+
+If the command takes some arguments, a good description would look like ```"arg_name:arg_type arg_name2:arg_type2 ... arg_nameN:arg_type - The description of what the command does"```. If it takes no arguments, just ```"- The description of what the command does"``` should be ok. It's good to remember that the argument names are just for helping users to understand their meaning, it has no real impact on the program itself. 
 
 The ```add_arg``` method can be called as many times as you wish to add any of the avaliable ```ArgType```s.
 
 Setting a callback is the most important thing about a command, you can create a command with no callback, but it's useless. The callback receives a reference to the running Shell and the EvaluatedArg vector with the values read from the input. 
 
 ### ArgType and EvaluatedArg
-When specifying command arguments, you need to specify the type of the argument both on the command definition and when you use the argument inside the callback function
+When specifying command arguments, you need to specify the type of the argument both on the command definition and when you use the argument inside the callback function. 
 
-```ArgType``` is used to specify the type in the ```CommandDefinition```. Once defined, when the command is read and evaluated, you will receive a vector of ```EvaluatedArg``` is the same order that you defined in the definition.
+```ArgType``` is used to specify the type in the ```CommandDefinition```. Once defined, when the command is read and evaluated, you will receive a vector of ```EvaluatedArg``` is the same order that you defined in the definition. They both can be ```Str```, ```Int```, ```Float``` or ```Bool```.
 
 So if you create the following command:
 
@@ -111,6 +114,8 @@ CommandDefinition::new("print")
 ```args``` will be a vector where ```args[0]``` has a ```EvaluatedArg::Str```, ```args[1]``` has a ```EvaluatedArg::Int``` and ```args[2]``` has a ```EvaluatedArg::Bool```. And inside the function, to get the proper value stored, just call ```args[0].get_str().unwrap()``` or ```args[1].get_int().unwrap()``` or ```args[2].get_bool().unwrap()```.
 
 The methods ```get_str()```,```get_int()```, ```get_float()``` and ```get_bool()``` returns a ```Option``` and don't try casting, if you call ```get_int()``` on a ```EvaluatedArg::Float``` you'll receive a None instead of Some.
+
+When passing arguments on the command line the ```Str``` can be unquoted if it has no spaces, other wise, use double quotes. ```Int``` are just regular numbers made of digits from 0 to 9. ```Float``` are numbers with a single '```.```' separating the integer and the decimal part. And finally, a ```Bool``` is an unquoted case-sensitive ```true``` or ```false```.
 
 ## Register Help, History and Exit Commands
 
