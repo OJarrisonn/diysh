@@ -1,5 +1,5 @@
 pub mod shell;
-mod inout;
+pub mod inout;
 mod error;
 pub mod commands;
 
