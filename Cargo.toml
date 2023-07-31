@@ -1,7 +1,7 @@
 [package]
 name = "diysh"
 authors = [ "Harrisonn <j.h.m.t.v.10@gmail.com>" ]
-version = "2.0.1"
+version = "2.0.2"
 edition = "2021"
 
 description = "The Do-It-Yourself SHell is a library that lets you create your own shell-like text interface"
