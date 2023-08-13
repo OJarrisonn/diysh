@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, collections::HashMap};
 use regex::Regex;
 
 use crate::error::InputError;
@@ -42,6 +42,19 @@ pub fn get_tokens(line: &str) -> Result<(IdentifierToken, Vec<ArgToken>), InputE
     }
 
     Ok((identifier, args))
+}
+
+pub fn get_env_var(line: &str) -> Result<(String, String), InputError> {
+    let line = line.trim();
+
+    if !is_env_var(line) {
+        Err(InputError::NotAEnvVarAttrib(line.to_string()))
+    } else {
+        let name = (&line[1..line.find("=").unwrap()]).to_string();
+        let value = (&line[line.find("=").unwrap()+1..]).to_string();
+
+        Ok((name, value))
+    }
 }
 
 pub fn read_line() -> String {
@@ -91,6 +104,16 @@ fn get_raw_tokens(raw_string: &str) -> Vec<String> {
     raw_tokens
 }
 
+pub fn replace_masks(text: String, map: &HashMap<String, String>) -> String {
+    let mut text = text;
+
+    for (key, value) in map {
+        text = text.replace(&format!("${}$", key), value);
+    }
+
+    text
+}
+
 fn is_identifier(text: &str) -> bool {
     match Regex::new(r"[a-z][a-zA-Z0-9]*").unwrap().captures(text) {
         None => false,
@@ -98,6 +121,12 @@ fn is_identifier(text: &str) -> bool {
     }
 }
 
+fn is_env_var(text: &str) -> bool {
+    match Regex::new(r"\$[A-Z_]+\=.+").unwrap().captures(text) {
+        None => false,
+        _ => true
+    }
+}
 
 fn is_flag(text: &str) -> bool {
     match Regex::new(r"--[a-z][a-zA-Z0-9]*").unwrap().captures(text) {

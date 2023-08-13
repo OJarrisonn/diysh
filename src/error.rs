@@ -7,6 +7,7 @@ use crate::commands::argument::ArgType;
 pub enum InputError{
     EmptyInput,
     NotACommand(String),
+    NotAEnvVarAttrib(String),
     InterfaceError(io::Error)
 }
 
@@ -21,6 +22,12 @@ pub enum CommandError {
 }
 
 
+#[derive(Debug)]
+pub enum EnvVarError {
+    Unset(String),
+    Mismatch(String, String)
+}
+
 
 impl Error for InputError {}
 
@@ -29,6 +36,7 @@ impl Display for InputError {
         match self {
             Self::EmptyInput => write!(f, "Empty input"),
             Self::NotACommand(cmd) => write!(f, "{} isn't a command", cmd),
+            Self::NotAEnvVarAttrib(env_var) => write!(f, "{} isn't a proper environment variable attribution", env_var),
             Self::InterfaceError(error) => write!(f, "Command-line input error {}", error)
         }
     }
@@ -57,7 +65,25 @@ impl Display for CommandError {
             Self::TooManyArguments(name, expected, got)  => write!(f, "Too many arguments for {}, expected {}, but got {}", name, expected, got),
             Self::TooFewArguments(name, expected, got)  => write!(f, "Too few arguments for {}, expected {}, but got {}", name, expected, got),
             Self::UnknownArgument(arg) => write!(f, "Unknown argument {}", arg),
-            Self::UnknownCommand(name) => write!(f, "Unknown command {}", name)
+            Self::UnknownCommand(name) => write!(f, "Unknown command {}", name),
+        }
+    }
+}
+
+impl Clone for EnvVarError {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Unset(arg0) => Self::Unset(arg0.clone()),
+            Self::Mismatch(arg0, arg1) => Self::Mismatch(arg0.clone(), arg1.clone()),
+        }
+    }
+}
+
+impl Display for EnvVarError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Unset(name) => write!(f, "Unset environment variable {}", name),
+            Self::Mismatch(name, value) => write!(f, "{} environment variable with value {} can't be casted to desired type", name, value)
         }
     }
 }

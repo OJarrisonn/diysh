@@ -1,14 +1,6 @@
-use chrono::Local;
+use diysh::{shell::Shell, commands::{definition::CommandDefinition, argument::ArgType}, inout::log::LogLevel};
 
-use crate::{shell::Shell, commands::{definition::CommandDefinition, argument::ArgType}, inout::log::LogLevel};
-
-#[test]
-fn time() {
-    println!("{}", Local::now().format("%Y-%m-%d-%H:%M:%S") );
-}
-
-#[test]
-fn shell_test() {
+fn main() {
     let mut shell = Shell::new();
 
     shell
@@ -48,7 +40,7 @@ fn shell_test() {
             .set_description("- Prints the value stored in $TO_PRINT")
             .set_callback(|shell, _args| {
                 match shell.get_env_var::<String>("TO_PRINT") {
-                    Ok(text) => { println!("{}", text); shell.log(LogLevel::INFO, &text)},
+                    Ok(text) => shell.log(LogLevel::INFO, &text),
                     Err(e) => shell.log(LogLevel::ERROR, &format!("{}", e)),
                 }
             })

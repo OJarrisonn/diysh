@@ -1,4 +1,4 @@
-use std::{fmt::Display, fs::OpenOptions, io::{Write, self}, path::Path};
+use std::{fmt::Display, fs::OpenOptions, io::Write, path::Path};
 
 pub enum LogLevel {
     INFO,
